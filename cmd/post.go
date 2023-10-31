@@ -20,17 +20,12 @@ var nsec string
 // postCmd represents the post command
 var postCmd = &cobra.Command{
 	Use:   "post",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Post to Nostr",
 	Run: func(cmd *cobra.Command, args []string) {
 		m, err := cmd.Flags().GetString("message")
 		if err != nil {
 			fmt.Println(err)
+			os.Exit(1)
 		}
 
 		_, v, err := nip19.Decode(nsec)
@@ -88,26 +83,18 @@ func initConfig() {
 	}
 
 	nsecFilePath := gostrConfigDirPath + "/nsec"
-	checkNsecFilePermission(nsecFilePath)
-	nsec = readNsec(nsecFilePath)
-}
-
-func checkNsecFilePermission(path string) {
-	f, err := os.Stat(path)
+	s, err := os.Stat(nsecFilePath)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	nsecPerm := f.Mode().Perm()
-	if nsecPerm != 0600 {
+	perm := s.Mode().Perm()
+	if perm != 0600 {
 		fmt.Println("nsec file permission is not 600")
 		os.Exit(1)
 	}
-}
 
-func readNsec(path string) string {
-	f, err := os.Open(path)
+	f, err := os.Open(nsecFilePath)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -117,5 +104,5 @@ func readNsec(path string) string {
 	b, err := io.ReadAll(f)
 	re := regexp.MustCompile(`\r?\n`)
 
-	return re.ReplaceAllString(string(b), "")
+	nsec = re.ReplaceAllString(string(b), "")
 }
