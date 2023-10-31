@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"regexp"
 
 	"github.com/nbd-wtf/go-nostr"
@@ -26,6 +27,27 @@ var postCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
+		}
+
+		if m == "" {
+			tmpDir := os.TempDir()
+			tmpFile, err := os.CreateTemp(tmpDir, "gostr")
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			defer os.Remove(tmpFile.Name())
+
+			openEditor(tmpFile.Name())
+			content, err := io.ReadAll(tmpFile)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			m = string(content)
+			if m == "" {
+				os.Exit(0)
+			}
 		}
 
 		_, v, err := nip19.Decode(nsec)
@@ -105,4 +127,18 @@ func initConfig() {
 	re := regexp.MustCompile(`\r?\n`)
 
 	nsec = re.ReplaceAllString(string(b), "")
+}
+
+func openEditor(path string) error {
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vi"
+	}
+
+	cmd := exec.Command(editor, path)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }
